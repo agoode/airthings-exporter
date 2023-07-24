@@ -8,17 +8,27 @@ class CloudCollector(Collector):
         self.client_id = client_id
         self.client_secret = client_secret
         self.device_id_list = device_id_list
+        self.device_info_dict = dict()
+
+        access_token = self.__get_access_token__()
+        for device_id in self.device_id_list:
+            device_info = self.__get_device_info__(access_token, device_id)
+            self.device_info_dict[device_id] = device_info
 
     def collect(self):
         gauge_metric_family = GaugeMetricFamily('airthings_gauge', 'Airthings sensor values')
         access_token = self.__get_access_token__()
         for device_id in self.device_id_list:
-            data = self.__get_cloud_data__(access_token, device_id)
+            data = self.__get_device_samples__(access_token, device_id)
             self.__add_samples__(gauge_metric_family, data, device_id)
         yield gauge_metric_family
 
     def __add_samples__(self, gauge_metric_family, data, device_id):
-        labels = {'device_id': device_id}
+        device_info = self.device_info_dict[device_id]
+        labels = {
+            'device_id': device_id,
+            'device_name': device_info['segment']['name']
+        }
         if 'battery' in data:
             gauge_metric_family.add_sample('airthings_battery_percent', value=data['battery'], labels=labels)
         if 'co2' in data:
@@ -46,13 +56,20 @@ class CloudCollector(Collector):
         if 'voc' in data:
             gauge_metric_family.add_sample('airthings_voc_parts_per_billion', value=data['voc'], labels=labels)
 
-    def __get_cloud_data__(self, access_token, device_id):
+    def __get_device_samples__(self, access_token, device_id):
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(
             f'https://ext-api.airthings.com/v1/devices/{device_id}/latest-samples',
             headers=headers)
         data = response.json()['data']
         return data
+
+    def __get_device_info__(self, access_token, device_id):
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(
+            f'https://ext-api.airthings.com/v1/devices/{device_id}',
+            headers=headers)
+        return response.json()
 
     def __get_access_token__(self):
         data = {
