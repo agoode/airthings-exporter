@@ -27,7 +27,9 @@ class CloudCollector(Collector):
         device_info = self._device_info_dict[device_id]
         labels = {
             'device_id': device_id,
-            'device_name': device_info['segment']['name']
+            'device_name': device_info['segment']['name'],
+            'device_location': device_info['location']['name'],
+            'product_name': device_info['productName'],
         }
         if 'battery' in data:
             gauge_metric_family.add_sample('airthings_battery_percent', value=data['battery'], labels=labels)
