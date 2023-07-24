@@ -63,6 +63,7 @@ class CloudCollector(Collector):
         response = requests.get(
             f'https://ext-api.airthings.com/v1/devices/{device_id}/latest-samples',
             headers=headers)
+        print(f'_get_device_samples {response.json()=}')
         data = response.json()['data']
         return data
 
@@ -71,6 +72,7 @@ class CloudCollector(Collector):
         response = requests.get(
             f'https://ext-api.airthings.com/v1/devices/{device_id}',
             headers=headers)
+        print(f'_get_device_info {response.json()=}')
         return response.json()
 
     def _get_access_token(self):
