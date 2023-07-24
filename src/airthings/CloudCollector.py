@@ -8,23 +8,17 @@ class CloudCollector(Collector):
         self._client_id = client_id
         self._client_secret = client_secret
         self._device_id_list = device_id_list
-        self._device_info_dict = dict()
-
-        access_token = self._get_access_token()
-        for device_id in self._device_id_list:
-            device_info = self._get_device_info(access_token, device_id)
-            self._device_info_dict[device_id] = device_info
 
     def collect(self):
         gauge_metric_family = GaugeMetricFamily('airthings_gauge', 'Airthings sensor values')
         access_token = self._get_access_token()
         for device_id in self._device_id_list:
+            device_info = self._get_device_info(access_token, device_id)
             data = self._get_device_samples(access_token, device_id)
-            self._add_samples(gauge_metric_family, data, device_id)
+            self._add_samples(gauge_metric_family, data, device_id, device_info)
         yield gauge_metric_family
 
-    def _add_samples(self, gauge_metric_family, data, device_id):
-        device_info = self._device_info_dict[device_id]
+    def _add_samples(self, gauge_metric_family, data, device_id, device_info):
         labels = {
             'device_id': device_id,
             'device_name': device_info['segment']['name'],
