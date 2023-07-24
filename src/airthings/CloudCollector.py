@@ -5,26 +5,26 @@ from prometheus_client.registry import Collector
 
 class CloudCollector(Collector):
     def __init__(self, client_id, client_secret, device_id_list):
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.device_id_list = device_id_list
-        self.device_info_dict = dict()
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._device_id_list = device_id_list
+        self._device_info_dict = dict()
 
-        access_token = self.__get_access_token__()
-        for device_id in self.device_id_list:
-            device_info = self.__get_device_info__(access_token, device_id)
-            self.device_info_dict[device_id] = device_info
+        access_token = self._get_access_token()
+        for device_id in self._device_id_list:
+            device_info = self._get_device_info(access_token, device_id)
+            self._device_info_dict[device_id] = device_info
 
     def collect(self):
         gauge_metric_family = GaugeMetricFamily('airthings_gauge', 'Airthings sensor values')
-        access_token = self.__get_access_token__()
-        for device_id in self.device_id_list:
-            data = self.__get_device_samples__(access_token, device_id)
-            self.__add_samples__(gauge_metric_family, data, device_id)
+        access_token = self._get_access_token()
+        for device_id in self._device_id_list:
+            data = self._get_device_samples(access_token, device_id)
+            self._add_samples(gauge_metric_family, data, device_id)
         yield gauge_metric_family
 
-    def __add_samples__(self, gauge_metric_family, data, device_id):
-        device_info = self.device_info_dict[device_id]
+    def _add_samples(self, gauge_metric_family, data, device_id):
+        device_info = self._device_info_dict[device_id]
         labels = {
             'device_id': device_id,
             'device_name': device_info['segment']['name']
@@ -56,7 +56,7 @@ class CloudCollector(Collector):
         if 'voc' in data:
             gauge_metric_family.add_sample('airthings_voc_parts_per_billion', value=data['voc'], labels=labels)
 
-    def __get_device_samples__(self, access_token, device_id):
+    def _get_device_samples(self, access_token, device_id):
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(
             f'https://ext-api.airthings.com/v1/devices/{device_id}/latest-samples',
@@ -64,18 +64,18 @@ class CloudCollector(Collector):
         data = response.json()['data']
         return data
 
-    def __get_device_info__(self, access_token, device_id):
+    def _get_device_info(self, access_token, device_id):
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(
             f'https://ext-api.airthings.com/v1/devices/{device_id}',
             headers=headers)
         return response.json()
 
-    def __get_access_token__(self):
+    def _get_access_token(self):
         data = {
             "grant_type": "client_credentials",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+            "client_id": self._client_id,
+            "client_secret": self._client_secret,
             "scope": "read:device:current_values"
         }
         token_response = requests.post(
