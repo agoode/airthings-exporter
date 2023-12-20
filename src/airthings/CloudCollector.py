@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import requests as requests
 from prometheus_client.metrics_core import GaugeMetricFamily
 from prometheus_client.registry import Collector
@@ -19,6 +20,12 @@ class CloudCollector(Collector):
         yield gauge_metric_family
 
     def _add_samples(self, gauge_metric_family, data, device_id, device_info):
+        if 'time' in data:
+            age = datetime.now() - datetime.fromtimestamp(data['time'])
+            if age > timedelta(hours=1):
+                # Data is too old.
+                return
+
         labels = {
             'device_id': device_id,
             'device_name': device_info['segment']['name'],
