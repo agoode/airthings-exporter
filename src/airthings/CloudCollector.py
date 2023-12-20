@@ -16,7 +16,8 @@ class CloudCollector(Collector):
         for device_id in self._device_id_list:
             device_info = self._get_device_info(access_token, device_id)
             data = self._get_device_samples(access_token, device_id)
-            self._add_samples(gauge_metric_family, data, device_id, device_info)
+            if data:
+                self._add_samples(gauge_metric_family, data, device_id, device_info)
         yield gauge_metric_family
 
     def _add_samples(self, gauge_metric_family, data, device_id, device_info):
@@ -65,7 +66,7 @@ class CloudCollector(Collector):
             f'https://ext-api.airthings.com/v1/devices/{device_id}/latest-samples',
             headers=headers)
         print(f'_get_device_samples {response.json()=}')
-        data = response.json()['data']
+        data = response.json().get('data')
         return data
 
     def _get_device_info(self, access_token, device_id):
